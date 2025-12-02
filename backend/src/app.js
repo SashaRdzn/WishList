@@ -1,9 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const connectDB = require('./database/connect');
 
-const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/authRoutes');
+const wishRoutes = require('./routes/wishRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 
@@ -13,12 +16,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
+
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/wishes', wishRoutes);
+app.use('/api/public', publicRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 

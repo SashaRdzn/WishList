@@ -1,0 +1,36 @@
+const mongoose = require('mongoose');
+
+const wishSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: [true, 'Название подарка обязательно'],
+    trim: true,
+    maxlength: [100, 'Название не должно превышать 100 символов']
+  },
+  image: {
+    type: String,
+    default: null
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  reserved: {
+    type: Boolean,
+    default: false
+  },
+  reservedBy: {
+    type: String,
+    default: null,
+    trim: true,
+    maxlength: [50, 'Имя не должно превышать 50 символов']
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = mongoose.model('Wish', wishSchema);
+

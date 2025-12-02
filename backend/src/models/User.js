@@ -1,35 +1,57 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
-  name: {
+  username: {
     type: String,
-    required: [true, 'Имя обязательно'],
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Email обязателен'],
+    required: [true, 'Логин обязателен'],
     unique: true,
-    lowercase: true,
-    trim: true
+    trim: true,
+    minlength: [3, 'Логин должен быть не менее 3 символов'],
+    maxlength: [20, 'Логин должен быть не более 20 символов']
   },
   password: {
     type: String,
     required: [true, 'Пароль обязателен'],
-    minlength: 6
+    minlength: [6, 'Пароль должен быть не менее 6 символов']
   },
-  age: {
-    type: Number,
-    min: 0
-  },
-  isActive: {
-    type: Boolean,
-    default: true
+  publicId: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+// Генерация публичного ID при создании пользователя
+userSchema.pre('save', async function() {
+  // Генерируем публичный ID, если его нет
+  if (!this.publicId) {
+    let publicId;
+    let isUnique = false;
+    while (!isUnique) {
+      // Генерируем случайный ID из 12 символов
+      publicId = crypto.randomBytes(6).toString('hex');
+      const existingUser = await mongoose.model('User').findOne({ publicId });
+      if (!existingUser) {
+        isUnique = true;
+      }
+    }
+    this.publicId = publicId;
+  }
+
+  // Хеширование пароля перед сохранением
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+});
+
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);
