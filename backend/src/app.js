@@ -12,38 +12,19 @@ const app = express();
 
 connectDB();
 
-const allowedOrigins = [
-  'https://podarok228.netlify.app',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS блокирован для origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+const corsOptions = {
+  origin: [
+    'https://podarok228.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://podarok.onrender.com'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
+};
 
-app.options('/*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -51,9 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
-  console.log('Origin:', req.headers.origin);
-  console.log('User-Agent:', req.headers['user-agent']);
+  console.log(`${req.method} ${req.url}`);
   next();
 });
 
@@ -65,23 +44,20 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK',
     timestamp: new Date().toISOString(),
-    cors: true,
-    allowedOrigins: allowedOrigins
+    message: 'Сервер работает'
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Маршрут не найден',
+    path: req.path,
+    method: req.method
   });
 });
 
 app.use((err, req, res, next) => {
-  console.error('Ошибка:', err.stack);
-  
-  if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({ 
-      error: 'CORS ошибка',
-      message: 'Доступ с этого домена запрещен',
-      yourOrigin: req.headers.origin,
-      allowedOrigins: allowedOrigins
-    });
-  }
-  
+  console.error(err.stack);
   res.status(500).json({ 
     error: 'Внутренняя ошибка сервера',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
