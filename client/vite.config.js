@@ -9,10 +9,11 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router'],
-          axios: ['axios']
-        }
+        manualChunks: undefined
+        // manualChunks: {
+        //   vendor: ['vue', 'vue-router'],
+        //   axios: ['axios']
+        // }
       }
     }
   },
