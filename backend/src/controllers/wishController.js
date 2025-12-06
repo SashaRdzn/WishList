@@ -18,7 +18,7 @@ exports.getMyWishes = async (req, res) => {
 
 exports.createWish = async (req, res) => {
   try {
-    const { title, price } = req.body;
+    const { title, price, link } = req.body;
     
     if (!title || title.trim().length === 0) {
       return res.status(400).json({ 
@@ -50,6 +50,10 @@ exports.createWish = async (req, res) => {
       }
     }
 
+    if (link !== undefined && link !== null && link !== '') {
+      wishData.link = link.trim();
+    }
+
     const wish = new Wish(wishData);
     await wish.save();
     res.status(201).json(wish);
@@ -63,7 +67,7 @@ exports.createWish = async (req, res) => {
 
 exports.updateWish = async (req, res) => {
   try {
-    const { title, price } = req.body;
+    const { title, price, link } = req.body;
     const wish = await Wish.findOne({ 
       _id: req.params.id, 
       user: req.userId 
@@ -92,6 +96,14 @@ exports.updateWish = async (req, res) => {
         if (!isNaN(priceNum) && priceNum >= 0) {
           wish.price = priceNum;
         }
+      }
+    }
+
+    if (link !== undefined) {
+      if (link === null || link === '') {
+        wish.link = null;
+      } else {
+        wish.link = link.trim();
       }
     }
 

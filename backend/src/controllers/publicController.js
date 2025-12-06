@@ -12,7 +12,7 @@ exports.getPublicWishlist = async (req, res) => {
     }
 
     const wishes = await Wish.find({ user: user._id })
-      .select('title image price reserved createdAt ')
+      .select('title image price link reserved createdAt ')
       .sort({ createdAt: -1 });
 
     res.json({

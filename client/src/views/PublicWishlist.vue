@@ -1,8 +1,12 @@
 <template>
   <div class="public-wishlist">
+    <div class="snowflakes">
+      <div class="snowflake" v-for="n in 50" :key="n" :style="{ left: Math.random() * 100 + '%', animationDelay: Math.random() * 5 + 's' }"></div>
+    </div>
     <header class="header">
       <div class="header-content">
-        <h1>🎁 Список желаний {{ user?.username }}</h1>
+        <IconGift :size="48" color="#ffd700" class="header-icon" />
+        <h1>Список желаний {{ user?.username }}</h1>
         <p class="subtitle">Выберите подарок, который хотите подарить</p>
       </div>
     </header>
@@ -19,7 +23,7 @@
 
       <div v-else class="wishes-container">
         <div v-if="wishes.length === 0" class="empty-state">
-          <div class="empty-icon">📭</div>
+          <IconBox :size="80" color="#dc143c" />
           <p>У этого пользователя пока нет подарков в списке желаний.</p>
         </div>
 
@@ -28,24 +32,31 @@
             v-for="wish in wishes" 
             :key="wish._id" 
             class="wish-card"
-            :class="{ 'reserved': wish.reserved }"
+            :class="{ 'reserved': wish.reserved, 'with-link': wish.link }"
           >
             <div v-if="wish.image" class="wish-image">
               <img :src="getImageUrl(wish.image)" :alt="wish.title" />
             </div>
             <div v-else class="wish-image placeholder">
-              <span>🖼️</span>
+              <IconImage :size="64" color="#c0c0c0" />
             </div>
             
             <div class="wish-content">
-              <h3>{{ wish.title }}</h3>
+              <h3 :class="{ 'has-link': wish.link }">
+                <a v-if="wish.link" :href="wish.link" target="_blank" rel="noopener noreferrer">
+                  {{ wish.title }}
+                  <IconLink :size="20" color="#ffd700" class="link-icon" />
+                </a>
+                <template v-else>{{ wish.title }}</template>
+              </h3>
               
               <div v-if="wish.price" class="price-display">
                 {{ formatPrice(wish.price) }}
               </div>
               
               <div v-if="wish.reserved" class="reserved-badge">
-                <span class="badge-text">✅ Зарезервировано</span>
+                <IconCheck :size="20" color="#fff" />
+                <span class="badge-text">Зарезервировано</span>
               </div>
               
               <div v-else class="reserve-section">
@@ -53,7 +64,8 @@
                   @click="handleReserveClick(wish._id)" 
                   class="btn btn-reserve"
                 >
-                  🎯 Зарезервировать
+                  <IconTarget :size="20" color="#fff" />
+                  Зарезервировать
                 </button>
               </div>
             </div>
@@ -64,7 +76,7 @@
 
     <div v-if="showRegisterModal" class="modal-overlay" @click="closeRegisterModal">
       <div class="modal-content" @click.stop>
-        <h2>🚀 Регистрация</h2>
+        <h2>Регистрация</h2>
         <p class="modal-subtitle">Зарегистрируйтесь, чтобы зарезервировать подарок</p>
         <form @submit.prevent="handleRegisterAndReserve" class="auth-form">
           <div class="form-group">
@@ -116,7 +128,7 @@
 
     <div v-if="showLoginModal" class="modal-overlay" @click="closeLoginModal">
       <div class="modal-content" @click.stop>
-        <h2>🔐 Вход</h2>
+        <h2>Вход</h2>
         <p class="modal-subtitle">Войдите, чтобы зарезервировать подарок</p>
         <form @submit.prevent="handleLoginAndReserve" class="auth-form">
           <div class="form-group">
@@ -154,7 +166,7 @@
 
     <div v-if="showSuccessModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content success-modal" @click.stop>
-        <div class="success-icon">🎉</div>
+        <IconGift :size="80" color="#ffd700" class="success-icon" />
         <h2>Отлично!</h2>
         <p>Вы успешно зарезервировали подарок!</p>
         <button @click="closeModal" class="btn btn-primary">Закрыть</button>
@@ -167,6 +179,12 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { publicAPI, authAPI } from '../services/api';
+import IconGift from '../components/IconGift.vue';
+import IconCheck from '../components/IconCheck.vue';
+import IconTarget from '../components/IconTarget.vue';
+import IconLink from '../components/IconLink.vue';
+import IconBox from '../components/IconBox.vue';
+import IconImage from '../components/IconImage.vue';
 
 const route = useRoute();
 const user = ref(null);
@@ -333,16 +351,65 @@ onMounted(() => {
 <style scoped>
 .public-wishlist {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #2d1b3d 100%);
   background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.snowflakes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.snowflake {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+
+.snowflake:nth-child(3n) {
+  width: 7px;
+  height: 7px;
+  animation-duration: 10s;
+}
+
+.snowflake:nth-child(3n+1) {
+  width: 12px;
+  height: 12px;
+  animation-duration: 15s;
+}
+
+.snowflake:nth-child(3n+2) {
+  width: 8px;
+  height: 8px;
+  animation-duration: 12s;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 .header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  /*background: linear-gradient(135deg, rgba(220, 20, 60, 0.3) 0%, rgba(255, 215, 0, 0.2) 100%);*/
+  /*backdrop-filter: blur(10px);*/
   color: white;
   padding: 60px 0;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  /*box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);*/
+  position: relative;
+  z-index: 2;
 }
 
 .header-content {
@@ -352,12 +419,27 @@ onMounted(() => {
   text-align: center;
 }
 
+.header-icon {
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
 h1 {
   margin: 0 0 15px 0;
   font-size: 42px;
   font-weight: 800;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff6347 50%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
@@ -365,27 +447,31 @@ h1 {
   opacity: 0.95;
   margin: 0;
   font-weight: 400;
+  color: #ffd700;
 }
 
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
   padding: 50px 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .loading {
   text-align: center;
   padding: 80px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(102, 126, 234, 0.2);
-  border-top-color: #667eea;
+  border: 4px solid rgba(255, 215, 0, 0.2);
+  border-top-color: #ffd700;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
@@ -398,13 +484,14 @@ h1 {
 .error-container {
   text-align: center;
   padding: 40px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: rgba(220, 20, 60, 0.2);
   backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 2px solid rgba(220, 20, 60, 0.5);
 }
 
 .error-message {
-  color: #e74c3c;
+  color: #ff6b6b;
   font-size: 18px;
   font-weight: 600;
 }
@@ -412,15 +499,11 @@ h1 {
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  color: #666;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 20px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  color: #fff;
 }
 
 .wishes-grid {
@@ -434,27 +517,53 @@ h1 {
   backdrop-filter: blur(10px);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  position: relative;
+}
+
+.wish-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #dc143c, #ffd700, #228b22);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.wish-card:hover::before {
+  opacity: 1;
 }
 
 .wish-card:hover {
   transform: translateY(-10px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(255, 215, 0, 0.4);
+  border-color: #ffd700;
 }
 
 .wish-card.reserved {
   opacity: 0.85;
-  border: 2px solid #28a745;
-  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.3);
+  border-color: #228b22;
+}
+
+.wish-card.reserved::before {
+  background: #228b22;
+  opacity: 1;
+}
+
+.wish-card.with-link {
+  border-left: 4px solid #ffd700;
 }
 
 .wish-image {
   width: 100%;
   height: 260px;
   overflow: hidden;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #ffe4e1 0%, #f0e68c 100%);
   position: relative;
 }
 
@@ -473,7 +582,6 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64px;
   color: #ccc;
 }
 
@@ -489,12 +597,29 @@ h1 {
   line-height: 1.3;
 }
 
+.wish-content h3.has-link a {
+  color: #dc143c;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s;
+}
+
+.wish-content h3.has-link a:hover {
+  color: #ff6347;
+}
+
+.link-icon {
+  vertical-align: middle;
+}
+
 .price-display {
   font-size: 20px;
   font-weight: 700;
-  color: #667eea;
+  color: #228b22;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #228b22 0%, #ffd700 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -503,14 +628,17 @@ h1 {
 .reserved-badge {
   margin-top: 16px;
   padding: 14px;
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
   border-radius: 12px;
   text-align: center;
-  border: 2px solid #28a745;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .badge-text {
-  color: #155724;
+  color: white;
   font-weight: 700;
   font-size: 15px;
 }
@@ -530,28 +658,32 @@ h1 {
   width: 100%;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-reserve {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(220, 20, 60, 0.4);
 }
 
 .btn-reserve:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.6);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(220, 20, 60, 0.4);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.6);
 }
 
 .btn:disabled {
@@ -582,7 +714,7 @@ h1 {
 }
 
 .modal-content {
-  background: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 240, 245, 0.98) 100%);
   border-radius: 24px;
   padding: 40px;
   max-width: 480px;
@@ -591,6 +723,7 @@ h1 {
   overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
   animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -608,7 +741,7 @@ h1 {
 .modal-content h2 {
   margin-top: 0;
   margin-bottom: 8px;
-  color: #333;
+  color: #dc143c;
   font-size: 32px;
   font-weight: 800;
   text-align: center;
@@ -626,8 +759,8 @@ h1 {
 }
 
 .success-icon {
-  font-size: 80px;
   margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
   animation: bounce 0.6s;
 }
 
@@ -639,7 +772,7 @@ h1 {
 
 .success-modal h2 {
   margin-bottom: 15px;
-  color: #28a745;
+  color: #228b22;
 }
 
 .success-modal p {
@@ -678,19 +811,19 @@ input {
 
 input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #dc143c;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
 }
 
 .error-message {
-  color: #e74c3c;
-  background: #fee;
+  color: #dc143c;
+  background: #ffe4e1;
   padding: 14px;
   border-radius: 12px;
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  border: 2px solid #e74c3c;
+  border: 2px solid #dc143c;
 }
 
 .auth-switch {
@@ -703,7 +836,7 @@ input:focus {
 .link-btn {
   background: none;
   border: none;
-  color: #667eea;
+  color: #dc143c;
   font-weight: 700;
   cursor: pointer;
   text-decoration: underline;
@@ -712,7 +845,7 @@ input:focus {
 }
 
 .link-btn:hover {
-  color: #764ba2;
+  color: #ff6347;
 }
 
 .btn-close {
@@ -734,8 +867,8 @@ input:focus {
 }
 
 .btn-close:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: #ffe4e1;
+  color: #dc143c;
 }
 
 @media (max-width: 768px) {

@@ -1,10 +1,16 @@
 <template>
   <div class="wishes-container">
+    <div class="snowflakes">
+      <div class="snowflake" v-for="n in 50" :key="n" :style="{ left: Math.random() * 100 + '%', animationDelay: Math.random() * 5 + 's' }"></div>
+    </div>
     <header class="header">
       <div class="header-content">
-        <h1>🎁 Мой список желаний</h1>
+        <div class="header-left">
+          <IconGift :size="40" color="#ffd700" class="header-icon" />
+          <h1>Мой список желаний</h1>
+        </div>
         <div class="user-info">
-          <span class="username">Привет, {{ user?.username }}! 👋</span>
+          <span class="username">Привет, {{ user?.username }}!</span>
           <div class="user-actions">
             <div class="share-section">
               <input 
@@ -14,7 +20,8 @@
                 ref="shareInputRef"
               />
               <button @click="copyLink" class="btn btn-share">
-                {{ linkCopied ? '✓ Скопировано!' : '📋 Копировать' }}
+                <IconCopy :size="18" color="#fff" />
+                {{ linkCopied ? 'Скопировано!' : 'Копировать' }}
               </button>
             </div>
             <button @click="handleLogout" class="btn btn-secondary">Выйти</button>
@@ -25,7 +32,7 @@
 
     <main class="main-content">
       <div class="add-wish-card">
-        <h2>✨ Добавить подарок</h2>
+        <h2>Добавить подарок</h2>
         <form @submit.prevent="handleAddWish" class="wish-form">
           <div class="form-group">
             <label for="title">Название подарка</label>
@@ -37,6 +44,16 @@
               maxlength="100"
               placeholder="Введите название подарка"
             />
+          </div>
+          <div class="form-group">
+            <label for="link">Ссылка на товар (необязательно)</label>
+            <input
+              id="link"
+              v-model="newWish.link"
+              type="url"
+              placeholder="https://example.com"
+            />
+            <small>Если указана ссылка, название будет выделено золотым цветом</small>
           </div>
           <div class="form-group">
             <label for="price">Цена в рублях (необязательно)</label>
@@ -64,7 +81,8 @@
           </div>
           <div v-if="error" class="error-message">{{ error }}</div>
           <button type="submit" :disabled="loading" class="btn btn-primary">
-            {{ loading ? 'Добавление...' : '➕ Добавить подарок' }}
+            <IconPlus :size="20" color="#fff" />
+            {{ loading ? 'Добавление...' : 'Добавить подарок' }}
           </button>
         </form>
       </div>
@@ -72,31 +90,46 @@
       <div class="wishes-list">
         <h2>Мои подарки ({{ wishes.length }})</h2>
         <div v-if="wishes.length === 0" class="empty-state">
-          <div class="empty-icon">📦</div>
+          <IconBox :size="80" color="#dc143c" />
           <p>У вас пока нет подарков. Добавьте первый!</p>
         </div>
         <div v-else class="wishes-grid">
-          <div v-for="wish in wishes" :key="wish._id" class="wish-card">
+          <div v-for="wish in wishes" :key="wish._id" class="wish-card" :class="{ 'with-link': wish.link }">
             <div v-if="wish.image" class="wish-image">
               <img :src="getImageUrl(wish.image)" :alt="wish.title" />
             </div>
             <div v-else class="wish-image placeholder">
-              <span>🖼️</span>
+              <IconImage :size="64" color="#c0c0c0" />
             </div>
             <div class="wish-content">
-              <h3>{{ wish.title }}</h3>
+              <h3 :class="{ 'has-link': wish.link }">
+                <a v-if="wish.link" :href="wish.link" target="_blank" rel="noopener noreferrer">
+                  {{ wish.title }}
+                  <IconLink :size="18" color="#ffd700" class="link-icon" />
+                </a>
+                <template v-else>{{ wish.title }}</template>
+              </h3>
               
               <div v-if="wish.price" class="price-display">
                 {{ formatPrice(wish.price) }}
               </div>
               
               <div v-if="wish.reserved" class="reserved-info">
-                <span class="reserved-badge">✅ Зарезервировано</span>
+                <span class="reserved-badge">
+                  <IconCheck :size="18" color="#fff" />
+                  Зарезервировано
+                </span>
               </div>
               
               <div class="wish-actions">
-                <button @click="startEdit(wish)" class="btn btn-small btn-edit">✏️ Изменить</button>
-                <button @click="handleDelete(wish._id)" class="btn btn-small btn-delete">🗑️ Удалить</button>
+                <button @click="startEdit(wish)" class="btn btn-small btn-edit">
+                  <IconEdit :size="16" color="#fff" />
+                  Изменить
+                </button>
+                <button @click="handleDelete(wish._id)" class="btn btn-small btn-delete">
+                  <IconDelete :size="16" color="#fff" />
+                  Удалить
+                </button>
               </div>
             </div>
           </div>
@@ -106,7 +139,7 @@
 
     <div v-if="editingWish" class="modal-overlay" @click="cancelEdit">
       <div class="modal-content" @click.stop>
-        <h2>✏️ Редактировать подарок</h2>
+        <h2>Редактировать подарок</h2>
         <form @submit.prevent="handleUpdateWish" class="wish-form">
           <div class="form-group">
             <label for="edit-title">Название подарка</label>
@@ -116,6 +149,15 @@
               type="text"
               required
               maxlength="100"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-link">Ссылка на товар (необязательно)</label>
+            <input
+              id="edit-link"
+              v-model="editingWish.link"
+              type="url"
+              placeholder="https://example.com"
             />
           </div>
           <div class="form-group">
@@ -145,7 +187,7 @@
           <div class="modal-actions">
             <button type="button" @click="cancelEdit" class="btn btn-secondary">Отмена</button>
             <button type="submit" :disabled="loading" class="btn btn-primary">
-              {{ loading ? 'Сохранение...' : '💾 Сохранить' }}
+              {{ loading ? 'Сохранение...' : 'Сохранить' }}
             </button>
           </div>
         </form>
@@ -158,10 +200,19 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { wishAPI, authAPI } from '../services/api';
+import IconGift from '../components/IconGift.vue';
+import IconCopy from '../components/IconCopy.vue';
+import IconPlus from '../components/IconPlus.vue';
+import IconCheck from '../components/IconCheck.vue';
+import IconEdit from '../components/IconEdit.vue';
+import IconDelete from '../components/IconDelete.vue';
+import IconLink from '../components/IconLink.vue';
+import IconBox from '../components/IconBox.vue';
+import IconImage from '../components/IconImage.vue';
 
 const router = useRouter();
 const wishes = ref([]);
-const newWish = ref({ title: '', price: '', image: null });
+const newWish = ref({ title: '', price: '', link: '', image: null });
 const editingWish = ref(null);
 const editImage = ref(null);
 const error = ref('');
@@ -206,8 +257,8 @@ const handleAddWish = async () => {
   loading.value = true;
 
   try {
-    await wishAPI.create(newWish.value.title, newWish.value.price || null, newWish.value.image);
-    newWish.value = { title: '', price: '', image: null };
+    await wishAPI.create(newWish.value.title, newWish.value.price || null, newWish.value.link || null, newWish.value.image);
+    newWish.value = { title: '', price: '', link: '', image: null };
     document.getElementById('image').value = '';
     await loadWishes();
   } catch (err) {
@@ -218,7 +269,7 @@ const handleAddWish = async () => {
 };
 
 const startEdit = (wish) => {
-  editingWish.value = { ...wish, price: wish.price || '' };
+  editingWish.value = { ...wish, price: wish.price || '', link: wish.link || '' };
   editImage.value = null;
 };
 
@@ -235,7 +286,8 @@ const handleUpdateWish = async () => {
     await wishAPI.update(
       editingWish.value._id, 
       editingWish.value.title, 
-      editingWish.value.price || null, 
+      editingWish.value.price || null,
+      editingWish.value.link || null,
       editImage.value
     );
     editingWish.value = null;
@@ -310,16 +362,65 @@ onMounted(async () => {
 <style scoped>
 .wishes-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #2d1b3d 100%);
   background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.snowflakes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.snowflake {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+
+.snowflake:nth-child(3n) {
+  width: 7px;
+  height: 7px;
+  animation-duration: 10s;
+}
+
+.snowflake:nth-child(3n+1) {
+  width: 12px;
+  height: 12px;
+  animation-duration: 15s;
+}
+
+.snowflake:nth-child(3n+2) {
+  width: 8px;
+  height: 8px;
+  animation-duration: 12s;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 .header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  /*background: linear-gradient(135deg, rgba(220, 20, 60, 0.3) 0%, rgba(255, 215, 0, 0.2) 100%);*/
+  /*backdrop-filter: blur(10px);*/
   color: white;
   padding: 30px 0;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  /*box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);*/
+  position: relative;
+  z-index: 2;
 }
 
 .header-content {
@@ -333,12 +434,32 @@ onMounted(async () => {
   gap: 20px;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-icon {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
 h1 {
   margin: 0;
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 800;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff6347 50%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .user-info {
@@ -352,6 +473,7 @@ h1 {
   font-size: 18px;
   font-weight: 600;
   opacity: 0.95;
+  color: #ffd700;
 }
 
 .user-actions {
@@ -382,16 +504,19 @@ h1 {
 }
 
 .btn-share {
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
+  background: rgba(220, 20, 60, 0.9);
+  color: white;
   font-size: 13px;
   padding: 8px 16px;
   white-space: nowrap;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-share:hover {
-  background: white;
+  background: rgba(220, 20, 60, 1);
   transform: translateY(-2px);
 }
 
@@ -399,6 +524,8 @@ h1 {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .add-wish-card {
@@ -407,14 +534,14 @@ h1 {
   border-radius: 24px;
   padding: 40px;
   margin-bottom: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
 }
 
 .add-wish-card h2 {
   margin-top: 0;
   margin-bottom: 30px;
-  color: #333;
+  color: #dc143c;
   font-size: 28px;
   font-weight: 800;
 }
@@ -441,6 +568,7 @@ label {
 
 input[type="text"],
 input[type="number"],
+input[type="url"],
 input[type="file"] {
   padding: 14px;
   border: 2px solid #e0e0e0;
@@ -450,14 +578,15 @@ input[type="file"] {
 }
 
 input[type="text"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="url"]:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #dc143c;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
 }
 
 small {
-  color: #667eea;
+  color: #228b22;
   font-size: 14px;
   font-weight: 600;
 }
@@ -467,21 +596,17 @@ small {
   margin-bottom: 30px;
   font-size: 32px;
   font-weight: 800;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
 }
 
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 24px;
-  color: #666;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 20px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  color: #fff;
 }
 
 .wishes-grid {
@@ -495,21 +620,43 @@ small {
   backdrop-filter: blur(10px);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  position: relative;
+}
+
+.wish-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #dc143c, #ffd700, #228b22);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.wish-card:hover::before {
+  opacity: 1;
 }
 
 .wish-card:hover {
   transform: translateY(-10px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(255, 215, 0, 0.4);
+  border-color: #ffd700;
+}
+
+.wish-card.with-link {
+  border-left: 4px solid #ffd700;
 }
 
 .wish-image {
   width: 100%;
   height: 240px;
   overflow: hidden;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #ffe4e1 0%, #f0e68c 100%);
 }
 
 .wish-image img {
@@ -527,7 +674,6 @@ small {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64px;
   color: #ccc;
 }
 
@@ -543,12 +689,29 @@ small {
   line-height: 1.3;
 }
 
+.wish-content h3.has-link a {
+  color: #dc143c;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s;
+}
+
+.wish-content h3.has-link a:hover {
+  color: #ff6347;
+}
+
+.link-icon {
+  vertical-align: middle;
+}
+
 .price-display {
   font-size: 20px;
   font-weight: 700;
-  color: #667eea;
+  color: #228b22;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #228b22 0%, #ffd700 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -559,14 +722,16 @@ small {
 }
 
 .reserved-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-  color: #155724;
+  background: linear-gradient(135deg, #228b22 0%, #32cd32 100%);
+  color: white;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 700;
-  border: 2px solid #28a745;
+
 }
 
 .wish-actions {
@@ -584,17 +749,21 @@ small {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #dc143c 0%, #ff6347 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(220, 20, 60, 0.4);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.6);
 }
 
 .btn-secondary {
@@ -642,14 +811,14 @@ small {
 }
 
 .error-message {
-  color: #e74c3c;
-  background: #fee;
+  color: #dc143c;
+  background: #ffe4e1;
   padding: 14px;
   border-radius: 12px;
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  border: 2px solid #e74c3c;
+  border: 2px solid #dc143c;
 }
 
 .modal-overlay {
@@ -674,7 +843,7 @@ small {
 }
 
 .modal-content {
-  background: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 240, 245, 0.98) 100%);
   border-radius: 24px;
   padding: 40px;
   max-width: 560px;
@@ -682,6 +851,7 @@ small {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 215, 0, 0.3);
   animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -699,7 +869,7 @@ small {
 .modal-content h2 {
   margin-top: 0;
   margin-bottom: 30px;
-  color: #333;
+  color: #dc143c;
   font-size: 28px;
   font-weight: 800;
 }
@@ -718,7 +888,7 @@ small {
   }
 
   h1 {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .wishes-grid {

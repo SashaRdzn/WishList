@@ -11,6 +11,11 @@ const wishSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  link: {
+    type: String,
+    default: null,
+    trim: true
+  },
   price: {
     type: Number,
     default: null,

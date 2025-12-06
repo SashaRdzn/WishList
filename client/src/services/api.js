@@ -44,11 +44,14 @@ export const wishAPI = {
   getAll: () => 
     api.get('/wishes'),
   
-  create: (title, price, imageFile) => {
+  create: (title, price, link, imageFile) => {
     const formData = new FormData();
     formData.append('title', title);
     if (price !== undefined && price !== null && price !== '') {
       formData.append('price', price);
+    }
+    if (link !== undefined && link !== null && link !== '') {
+      formData.append('link', link);
     }
     if (imageFile) {
       formData.append('image', imageFile);
@@ -60,11 +63,14 @@ export const wishAPI = {
     });
   },
   
-  update: (id, title, price, imageFile) => {
+  update: (id, title, price, link, imageFile) => {
     const formData = new FormData();
     formData.append('title', title);
     if (price !== undefined) {
       formData.append('price', price !== null && price !== '' ? price : '');
+    }
+    if (link !== undefined) {
+      formData.append('link', link !== null && link !== '' ? link : '');
     }
     if (imageFile) {
       formData.append('image', imageFile);
