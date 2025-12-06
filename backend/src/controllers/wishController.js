@@ -2,10 +2,10 @@ const Wish = require('../models/Wish');
 const path = require('path');
 const fs = require('fs');
 
-// Получить все подарки текущего пользователя
 exports.getMyWishes = async (req, res) => {
   try {
     const wishes = await Wish.find({ user: req.userId })
+      .select('-reservedByUser')
       .sort({ createdAt: -1 });
     res.json(wishes);
   } catch (error) {
@@ -16,10 +16,9 @@ exports.getMyWishes = async (req, res) => {
   }
 };
 
-// Создать новый подарок
 exports.createWish = async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, price } = req.body;
     
     if (!title || title.trim().length === 0) {
       return res.status(400).json({ 
@@ -33,18 +32,25 @@ exports.createWish = async (req, res) => {
       });
     }
 
-    // Обработка загруженного файла
     let imagePath = null;
     if (req.file) {
       imagePath = `/uploads/${req.file.filename}`;
     }
 
-    const wish = new Wish({
+    const wishData = {
       title: title.trim(),
       image: imagePath,
       user: req.userId
-    });
+    };
 
+    if (price !== undefined && price !== null && price !== '') {
+      const priceNum = parseFloat(price);
+      if (!isNaN(priceNum) && priceNum >= 0) {
+        wishData.price = priceNum;
+      }
+    }
+
+    const wish = new Wish(wishData);
     await wish.save();
     res.status(201).json(wish);
   } catch (error) {
@@ -55,10 +61,9 @@ exports.createWish = async (req, res) => {
   }
 };
 
-// Обновить подарок
 exports.updateWish = async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, price } = req.body;
     const wish = await Wish.findOne({ 
       _id: req.params.id, 
       user: req.userId 
@@ -79,9 +84,18 @@ exports.updateWish = async (req, res) => {
       wish.title = title.trim();
     }
 
-    // Если загружено новое изображение
+    if (price !== undefined) {
+      if (price === null || price === '') {
+        wish.price = null;
+      } else {
+        const priceNum = parseFloat(price);
+        if (!isNaN(priceNum) && priceNum >= 0) {
+          wish.price = priceNum;
+        }
+      }
+    }
+
     if (req.file) {
-      // Удаляем старое изображение, если оно есть
       if (wish.image) {
         const oldImagePath = path.join(__dirname, '..', '..', 'public', wish.image);
         if (fs.existsSync(oldImagePath)) {
@@ -101,7 +115,6 @@ exports.updateWish = async (req, res) => {
   }
 };
 
-// Удалить подарок
 exports.deleteWish = async (req, res) => {
   try {
     const wish = await Wish.findOne({ 
@@ -115,7 +128,6 @@ exports.deleteWish = async (req, res) => {
       });
     }
 
-    // Удаляем изображение, если оно есть
     if (wish.image) {
       const imagePath = path.join(__dirname, '..', '..', 'public', wish.image);
       if (fs.existsSync(imagePath)) {

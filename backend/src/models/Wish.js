@@ -11,6 +11,11 @@ const wishSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  price: {
+    type: Number,
+    default: null,
+    min: [0, 'Цена не может быть отрицательной']
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -20,11 +25,10 @@ const wishSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  reservedBy: {
-    type: String,
-    default: null,
-    trim: true,
-    maxlength: [50, 'Имя не должно превышать 50 символов']
+  reservedByUser: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   createdAt: {
     type: Date,

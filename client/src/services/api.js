@@ -44,9 +44,12 @@ export const wishAPI = {
   getAll: () => 
     api.get('/wishes'),
   
-  create: (title, imageFile) => {
+  create: (title, price, imageFile) => {
     const formData = new FormData();
     formData.append('title', title);
+    if (price !== undefined && price !== null && price !== '') {
+      formData.append('price', price);
+    }
     if (imageFile) {
       formData.append('image', imageFile);
     }
@@ -57,9 +60,12 @@ export const wishAPI = {
     });
   },
   
-  update: (id, title, imageFile) => {
+  update: (id, title, price, imageFile) => {
     const formData = new FormData();
     formData.append('title', title);
+    if (price !== undefined) {
+      formData.append('price', price !== null && price !== '' ? price : '');
+    }
     if (imageFile) {
       formData.append('image', imageFile);
     }
@@ -74,16 +80,30 @@ export const wishAPI = {
     api.delete(`/wishes/${id}`)
 };
 
-// Публичный API (без авторизации)
+const publicApiInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+publicApiInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const publicAPI = {
   getWishlist: (publicId) => 
     axios.get(`${API_URL}/public/${publicId}`),
   
-  reserveWish: (publicId, wishId, reservedBy) => 
-    axios.post(`${API_URL}/public/${publicId}/wishes/${wishId}/reserve`, { reservedBy }),
+  reserveWish: (publicId, wishId) => 
+    publicApiInstance.post(`${API_URL}/public/${publicId}/wishes/${wishId}/reserve`),
   
   unreserveWish: (publicId, wishId) => 
-    axios.post(`${API_URL}/public/${publicId}/wishes/${wishId}/unreserve`)
+    publicApiInstance.post(`${API_URL}/public/${publicId}/wishes/${wishId}/unreserve`)
 };
 
 export default api;

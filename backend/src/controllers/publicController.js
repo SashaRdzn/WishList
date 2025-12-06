@@ -1,20 +1,18 @@
 const User = require('../models/User');
 const Wish = require('../models/Wish');
+const auth = require('../middleware/auth');
 
-// Получить публичную информацию о пользователе и его подарках
 exports.getPublicWishlist = async (req, res) => {
   try {
     const { publicId } = req.params;
 
-    // Найти пользователя по публичному ID
     const user = await User.findOne({ publicId }).select('username publicId');
     if (!user) {
       return res.status(404).json({ error: 'Список желаний не найден' });
     }
 
-    // Получить все подарки пользователя
     const wishes = await Wish.find({ user: user._id })
-      .select('title image reserved reservedBy createdAt')
+      .select('title image price reserved createdAt ')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -33,31 +31,15 @@ exports.getPublicWishlist = async (req, res) => {
   }
 };
 
-// Зарезервировать подарок
-exports.reserveWish = async (req, res) => {
+exports.reserveWish = [auth, async (req, res) => {
   try {
     const { publicId, wishId } = req.params;
-    const { reservedBy } = req.body;
 
-    if (!reservedBy || reservedBy.trim().length === 0) {
-      return res.status(400).json({ 
-        error: 'Имя обязательно для резервирования' 
-      });
-    }
-
-    if (reservedBy.length > 50) {
-      return res.status(400).json({ 
-        error: 'Имя не должно превышать 50 символов' 
-      });
-    }
-
-    // Найти пользователя по публичному ID
     const user = await User.findOne({ publicId });
     if (!user) {
       return res.status(404).json({ error: 'Список желаний не найден' });
     }
 
-    // Найти подарок
     const wish = await Wish.findOne({ 
       _id: wishId, 
       user: user._id 
@@ -67,16 +49,14 @@ exports.reserveWish = async (req, res) => {
       return res.status(404).json({ error: 'Подарок не найден' });
     }
 
-    // Проверка, не зарезервирован ли уже
     if (wish.reserved) {
       return res.status(400).json({ 
         error: 'Этот подарок уже зарезервирован' 
       });
     }
 
-    // Резервируем подарок
     wish.reserved = true;
-    wish.reservedBy = reservedBy.trim();
+    wish.reservedByUser = req.userId;
     await wish.save();
 
     res.json({
@@ -84,8 +64,7 @@ exports.reserveWish = async (req, res) => {
       wish: {
         _id: wish._id,
         title: wish.title,
-        reserved: wish.reserved,
-        reservedBy: wish.reservedBy
+        reserved: wish.reserved
       }
     });
   } catch (error) {
@@ -95,20 +74,17 @@ exports.reserveWish = async (req, res) => {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-};
+}];
 
-// Отменить резервирование подарка
-exports.unreserveWish = async (req, res) => {
+exports.unreserveWish = [auth, async (req, res) => {
   try {
     const { publicId, wishId } = req.params;
 
-    // Найти пользователя по публичному ID
     const user = await User.findOne({ publicId });
     if (!user) {
       return res.status(404).json({ error: 'Список желаний не найден' });
     }
 
-    // Найти подарок
     const wish = await Wish.findOne({ 
       _id: wishId, 
       user: user._id 
@@ -118,9 +94,14 @@ exports.unreserveWish = async (req, res) => {
       return res.status(404).json({ error: 'Подарок не найден' });
     }
 
-    // Отменяем резервирование
+    if (wish.reservedByUser && wish.reservedByUser.toString() !== req.userId.toString()) {
+      return res.status(403).json({ 
+        error: 'Вы не можете отменить чужое резервирование' 
+      });
+    }
+
     wish.reserved = false;
-    wish.reservedBy = null;
+    wish.reservedByUser = null;
     await wish.save();
 
     res.json({
@@ -128,8 +109,7 @@ exports.unreserveWish = async (req, res) => {
       wish: {
         _id: wish._id,
         title: wish.title,
-        reserved: wish.reserved,
-        reservedBy: wish.reservedBy
+        reserved: wish.reserved
       }
     });
   } catch (error) {
@@ -139,5 +119,5 @@ exports.unreserveWish = async (req, res) => {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-};
+}];
 

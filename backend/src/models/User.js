@@ -27,14 +27,11 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Генерация публичного ID при создании пользователя
 userSchema.pre('save', async function() {
-  // Генерируем публичный ID, если его нет
   if (!this.publicId) {
     let publicId;
     let isUnique = false;
     while (!isUnique) {
-      // Генерируем случайный ID из 12 символов
       publicId = crypto.randomBytes(6).toString('hex');
       const existingUser = await mongoose.model('User').findOne({ publicId });
       if (!existingUser) {
@@ -44,7 +41,6 @@ userSchema.pre('save', async function() {
     this.publicId = publicId;
   }
 
-  // Хеширование пароля перед сохранением
   if (this.isModified('password')) {
     this.password = await bcrypt.hash(this.password, 10);
   }

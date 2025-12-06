@@ -48,7 +48,6 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
-    // Обработка ошибок валидации Mongoose
     if (error.name === 'ValidationError') {
       const firstError = Object.values(error.errors)[0];
       return res.status(400).json({ 
@@ -56,7 +55,6 @@ exports.register = async (req, res) => {
       });
     }
     
-    // Обработка ошибки дубликата (unique constraint)
     if (error.code === 11000) {
       return res.status(400).json({ 
         error: 'Пользователь с таким логином уже существует' 
@@ -120,7 +118,6 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
     
-    // Если у пользователя нет publicId, генерируем его
     if (!user.publicId) {
       const crypto = require('crypto');
       let publicId;
